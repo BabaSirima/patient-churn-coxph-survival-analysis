@@ -125,7 +125,7 @@ At **60 months**, the predicted probability of remaining active was approximatel
 
 ### 1. Key Drivers of Patient Churn
  
-![Key Drivers of Patient Churn](figures/Key_Drivers_of_Patient_Churn_Full1%20Model.png)
+![Key Drivers of Patient Churn](figures/Key_Drivers_of_Patient_Churn_Full%20Model.png)
 
 The full-model visualization highlights the strongest predictors according to the absolute z-statistic. **Days since last visit, overall satisfaction, wait-time satisfaction, distance to the facility, and referrals made** were statistically significant at the 0.05 level. Portal usage and the Pennsylvania state indicator shown in the figure did not meet the 0.05 significance threshold.
 
