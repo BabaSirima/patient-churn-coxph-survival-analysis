@@ -226,9 +226,6 @@ This project is intended for educational and portfolio purposes. The results sho
 
 This project demonstrates practical skills across the complete data science and statistical modeling workflow:
 
-- **Data Preparation & Cleaning:** Imported, cleaned, transformed, and validated structured healthcare data in R for survival analysis.
-
-- **Exploratory Data Analysis:** Examined patient characteristics, churn outcomes, and predictor distributions to understand patterns in the dataset.
 
 - **Survival Analysis:** Applied time-to-event analysis to model patient churn using patient tenure as the time variable and churn status as the event.
 
@@ -244,11 +241,7 @@ This project demonstrates practical skills across the complete data science and 
 
 - **Patient-Level Predictive Analysis:** Generated survival and cumulative hazard predictions for hypothetical patient profiles to demonstrate differences in churn risk over time.
 
-- **Data Visualization:** Developed clear visualizations of model predictors, survival probabilities, cumulative hazard, and patient-level risk trajectories using R.
-
-- **Reproducible Analytics:** Built the complete analysis in R Markdown, integrating data preparation, statistical modeling, visualization, interpretation, and reporting into a reproducible workflow.
-
-- **Technical Communication:** Translated statistical model results and hazard ratios into understandable healthcare and business insights for technical and non-technical audiences.
+- **Data Visualization and communication:** Developed clear visualizations of model predictors, survival probabilities, cumulative hazard, and patient-level risk trajectories using R and translated statistical results into actionable insights understandable for technical and non-technical audiences.
 
 ### Technical Skills
 
