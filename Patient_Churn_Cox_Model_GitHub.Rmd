@@ -1,0 +1,416 @@
+---
+title: "Patient Churn Survival Analysis Using Cox Proportional Hazards"
+author: "Baba Sirima"
+date: "2026-03-28"
+output:
+  pdf_document:
+    latex_engine: xelatex
+  html_document:
+    toc: true
+    toc_depth: 3
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = TRUE,
+  warning = FALSE,
+  message = FALSE,
+  fig.align = "center"
+)
+```
+
+# Project Overview
+
+This project applies survival analysis to patient churn in healthcare. The objective is to estimate how long patients remain active and to identify factors associated with the hazard of churn. The analysis compares a full Cox proportional hazards model with a reduced model, evaluates the proportional hazards assumption, and illustrates model predictions using two contrasting patient profiles.
+
+# 1. Load Packages
+
+This version intentionally avoids the `%>%` pipe operator. Each data-processing step is written separately so the workflow is easier to follow and explain.
+
+```{r load-packages}
+library(tidyverse)
+library(survival)
+library(survminer)
+library(broom)
+library(janitor)
+```
+
+# 2. Load and Prepare Data
+
+The dataset is stored in the `data` folder so that the project can be reproduced from a consistent repository structure.
+
+```{r load-data}
+# Step 1: Read the CSV file
+cox_data <- read_csv(
+  "data/patient_churn_dataset.csv",
+  show_col_types = FALSE
+)
+
+# Step 2: Clean the column names
+cox_data <- clean_names(cox_data)
+
+# Step 3: Convert variables to the appropriate data types
+cox_data$last_interaction_date <- as.Date(cox_data$last_interaction_date)
+cox_data$gender <- as.factor(cox_data$gender)
+cox_data$state <- as.factor(cox_data$state)
+cox_data$specialty <- as.factor(cox_data$specialty)
+cox_data$insurance_type <- as.factor(cox_data$insurance_type)
+cox_data$churned <- as.numeric(cox_data$churned)
+cox_data$tenure_months <- as.numeric(cox_data$tenure_months)
+
+# Quick check of the prepared data
+head(cox_data)
+```
+
+## Create the Survival Object
+
+`tenure_months` is used as the time variable and `churned` is used as the event indicator. A value of 1 for `churned` represents an observed churn event, while a censored observation is represented by 0.
+
+```{r survival-object}
+surv_obj <- with(
+  cox_data,
+  Surv(time = tenure_months, event = churned)
+)
+
+# Display only the first 10 observations rather than printing all 2,000 records
+head(surv_obj, 10)
+```
+
+# 3. Cox Proportional Hazards Models
+
+## Model 1: Full Cox PH Model
+
+The full model includes demographic, utilization, satisfaction, financial, engagement, referral, and distance variables.
+
+```{r full-model}
+cox_full <- coxph(
+  surv_obj ~ age + gender + state + specialty + insurance_type +
+    visits_last_year + missed_appointments + days_since_last_visit +
+    overall_satisfaction + wait_time_satisfaction + staff_satisfaction +
+    provider_rating + avg_out_of_pocket_cost + billing_issues +
+    portal_usage + referrals_made + distance_to_facility_miles,
+  data = cox_data
+)
+
+summary(cox_full)
+AIC(cox_full)
+```
+
+The full Cox PH model has an AIC of **18194.01**. Five predictors are statistically significant at the 0.05 level: `days_since_last_visit`, `overall_satisfaction`, `wait_time_satisfaction`, `referrals_made`, and `distance_to_facility_miles`.
+
+## Key Drivers in the Full Model
+
+The following visualization highlights the statistically significant predictors and two of the strongest non-significant predictors from the full model based on the absolute value of the z-statistic.
+
+```{r key-drivers-full-model, fig.width=7, fig.height=5}
+# Convert the full Cox model results into a data frame
+cox_tidy_full <- tidy(cox_full)
+
+# Create easy-to-read helper columns for the plots
+cox_tidy_full$abs_z <- abs(cox_tidy_full$statistic)
+cox_tidy_full$significance <- ifelse(
+  cox_tidy_full$p.value < 0.05,
+  "Significant",
+  "Not Significant"
+)
+cox_tidy_full$p_label <- paste0(
+  "p = ",
+  signif(cox_tidy_full$p.value, 2)
+)
+
+# Keep only statistically significant variables
+top_sig <- cox_tidy_full[cox_tidy_full$p.value < 0.05, ]
+
+# Sort significant variables from strongest to weakest z-statistic
+top_sig <- top_sig[order(-top_sig$abs_z), ]
+
+# Keep the first five significant variables
+top_sig <- head(top_sig, 5)
+
+# Keep only non-significant variables
+top_nonsig <- cox_tidy_full[cox_tidy_full$p.value >= 0.05, ]
+
+# Sort non-significant variables from strongest to weakest z-statistic
+top_nonsig <- top_nonsig[order(-top_nonsig$abs_z), ]
+
+# Keep the first two non-significant variables
+top_nonsig <- head(top_nonsig, 2)
+
+# Combine the two groups for visualization
+final_data <- bind_rows(top_sig, top_nonsig)
+
+ggplot(
+  final_data,
+  aes(x = reorder(term, abs_z), y = abs_z, fill = significance)
+) +
+  geom_col() +
+  geom_text(aes(label = p_label), hjust = -0.05, size = 3) +
+  coord_flip() +
+  labs(
+    title = "Key Drivers of Patient Churn (Full Model)",
+    x = "Variable",
+    y = "|z|-Statistic",
+    fill = "Statistical Significance"
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold")
+  ) +
+  expand_limits(y = max(final_data$abs_z) + 0.8)
+```
+
+## Examples of Non-Significant Predictors
+
+This chart displays seven predictors with relatively small absolute z-statistics. It is included to illustrate variables that showed little evidence of association with churn in the full model.
+
+```{r nonsignificant-predictors, fig.width=7, fig.height=5}
+# Keep only non-significant predictors
+least_influential <- cox_tidy_full[cox_tidy_full$p.value >= 0.05, ]
+
+# Sort them from the smallest to the largest absolute z-statistic
+least_influential <- least_influential[order(least_influential$abs_z), ]
+
+# Keep the seven least influential predictors
+least_influential <- head(least_influential, 7)
+
+ggplot(
+  least_influential,
+  aes(x = reorder(term, abs_z), y = abs_z, fill = significance)
+) +
+  geom_col() +
+  geom_text(aes(label = p_label), hjust = -0.05, size = 3) +
+  coord_flip() +
+  labs(
+    title = "Examples of Non-Significant Predictors in the Full Cox PH Model",
+    x = "Variable",
+    y = "|z|-Statistic",
+    fill = "Statistical Significance"
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold")
+  ) +
+  expand_limits(y = max(least_influential$abs_z) + 0.8)
+```
+
+## Model 2: Reduced Cox PH Model
+
+To improve parsimony and interpretability, a reduced Cox proportional hazards model is fitted using the five predictors that were statistically significant in the full model.
+
+```{r reduced-model}
+cox_reduced <- coxph(
+  surv_obj ~ overall_satisfaction + days_since_last_visit +
+    wait_time_satisfaction + referrals_made +
+    distance_to_facility_miles,
+  data = cox_data
+)
+
+summary(cox_reduced)
+AIC(cox_reduced)
+```
+
+# 4. Model Comparison and Selection
+
+The full Cox proportional hazards model produced an AIC of **18194.01**, while the reduced model produced a lower AIC of **18170.73**.
+
+Because a lower AIC indicates a better balance between model fit and model complexity, the reduced model is preferred based on AIC. The full model has a concordance index of **0.572**, compared with **0.552** for the reduced model. Although the full model shows slightly better discrimination, the reduced model is more parsimonious and provides a simpler interpretation while retaining the statistically significant predictors.
+
+```{r model-comparison}
+model_comparison <- tibble(
+  Model = c("Full Cox PH", "Reduced Cox PH"),
+  AIC = c(AIC(cox_full), AIC(cox_reduced)),
+  Concordance = c(
+    summary(cox_full)$concordance[1],
+    summary(cox_reduced)$concordance[1]
+  )
+)
+
+model_comparison
+
+best_model <- cox_reduced
+```
+
+# 5. Proportional Hazards Assumption
+
+The proportional hazards assumption is evaluated using Schoenfeld residuals. A p-value below 0.05 would indicate evidence that the proportional hazards assumption is violated.
+
+```{r ph-assumption}
+ph_test <- cox.zph(best_model)
+ph_test
+```
+
+The global Schoenfeld residual test produced a p-value of **0.92**. Since this value is greater than 0.05, there is no statistically significant evidence that the proportional hazards assumption is violated. The individual predictor tests also have p-values greater than 0.05, supporting the use of the Cox proportional hazards model for this analysis.
+
+# 6. Reduced Model Interpretation
+
+## Cox Proportional Hazards Equation
+
+The Cox proportional hazards model is written as:
+
+\[
+h(t \mid X) = h_0(t)\exp(\beta_1X_1 + \beta_2X_2 + \cdots + \beta_pX_p)
+\]
+
+For the reduced model, the estimated linear predictor is:
+
+\[
+\log h(t) = \log h_0(t)
+-0.09169(\text{Overall Satisfaction})
++0.000494(\text{Days Since Last Visit})
+-0.09019(\text{Wait-Time Satisfaction})
+-0.05094(\text{Referrals Made})
++0.00497(\text{Distance to Facility})
+\]
+
+## Hazard Ratio Interpretation
+
+For a Cox model, `exp(coef)` is the hazard ratio (HR). When HR < 1, increases in the predictor are associated with a lower hazard. When HR > 1, increases in the predictor are associated with a higher hazard.
+
+- **Overall Satisfaction:** HR = 0.9124. A one-unit increase in overall satisfaction is associated with approximately an **8.8% decrease** in the hazard of patient churn.
+- **Days Since Last Visit:** HR = 1.0005. Each additional day since the patient's last visit is associated with a small increase in churn hazard. Although the effect per day is small, the effect can accumulate across longer intervals.
+- **Wait-Time Satisfaction:** HR = 0.9138. A one-unit increase in wait-time satisfaction is associated with approximately an **8.6% decrease** in churn hazard.
+- **Referrals Made:** HR = 0.9503. Each additional referral is associated with approximately a **5.0% decrease** in churn hazard.
+- **Distance to Facility:** HR = 1.0050. Each additional mile from the healthcare facility is associated with approximately a **0.5% increase** in churn hazard.
+
+# 7. Overall Survival and Cumulative Hazard
+
+```{r overall-survival, fig.width=7, fig.height=5}
+fit_cumhaz <- survfit(best_model)
+
+ggsurvplot(
+  fit_cumhaz,
+  data = cox_data,
+  conf.int = TRUE,
+  ggtheme = theme_minimal(),
+  title = "Survival Curve from the Reduced Cox PH Model",
+  xlab = "Tenure (Months)",
+  ylab = "Probability of Remaining Active"
+)
+```
+
+```{r overall-cumulative-hazard, fig.width=7, fig.height=5}
+ggsurvplot(
+  fit_cumhaz,
+  data = cox_data,
+  fun = "cumhaz",
+  conf.int = TRUE,
+  ggtheme = theme_minimal(),
+  title = "Cumulative Hazard from the Reduced Cox PH Model",
+  xlab = "Tenure (Months)",
+  ylab = "Cumulative Hazard"
+)
+```
+
+# 8. Patient Risk Profile Case Study
+
+Two patient profiles are compared to demonstrate how the reduced Cox model can translate statistical relationships into patient-level risk predictions.
+
+**Individual 1: Lower-risk profile**
+
+- Overall satisfaction = 5
+- Days since last visit = 10
+- Distance to facility = 5 miles
+- Wait-time satisfaction = 5
+- Referrals made = 2
+
+**Individual 2: Higher-risk profile**
+
+- Overall satisfaction = 2
+- Days since last visit = 90
+- Distance to facility = 25 miles
+- Wait-time satisfaction = 2
+- Referrals made = 0
+
+The prediction data frame includes only the five predictors used by the reduced Cox model. This keeps the code simple and makes it clear which variables drive the predictions.
+
+```{r patient-profiles}
+# Create two simple patient profiles using only the five predictors
+# included in the reduced Cox model.
+new_patients <- data.frame(
+  overall_satisfaction = c(5, 2),
+  days_since_last_visit = c(10, 90),
+  wait_time_satisfaction = c(5, 2),
+  referrals_made = c(2, 0),
+  distance_to_facility_miles = c(5, 25)
+)
+
+# Predict survival curves for the two patient profiles
+fit_two <- survfit(best_model, newdata = new_patients)
+```
+
+## Predicted Cumulative Hazard Curves
+
+```{r patient-cumulative-hazard, fig.width=7, fig.height=5}
+p_haz <- ggsurvplot(
+  fit_two,
+  fun = "cumhaz",
+  data = new_patients,
+  conf.int = FALSE,
+  censor = FALSE,
+  ggtheme = theme_minimal(base_size = 14),
+  legend.title = "Patient Profile",
+  legend.labs = c(
+    "Individual 1: Lower Risk",
+    "Individual 2: Higher Risk"
+  ),
+  title = "Predicted Cumulative Hazard Curves for Two Individuals",
+  xlab = "Tenure (Months)",
+  ylab = "Cumulative Hazard"
+)
+
+p_haz$plot <- p_haz$plot +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold"),
+    axis.title = element_text(face = "bold")
+  )
+
+p_haz
+```
+
+The higher-risk patient's cumulative hazard increases faster over time, while the lower-risk patient's cumulative hazard remains lower.
+
+```{r cumulative-hazard-at-75}
+summary(fit_two, times = 75)$cumhaz
+```
+
+At 75 months, the model output can be used to compare the cumulative hazard between the two profiles directly.
+
+## Predicted Survival Curves
+
+```{r patient-survival-curves, fig.width=7, fig.height=5}
+p_surv <- ggsurvplot(
+  fit_two,
+  data = new_patients,
+  conf.int = FALSE,
+  censor = FALSE,
+  ggtheme = theme_minimal(base_size = 14),
+  legend.title = "Patient Profile",
+  legend.labs = c(
+    "Individual 1: Lower Risk",
+    "Individual 2: Higher Risk"
+  ),
+  title = "Predicted Survival Curves for Two Individuals",
+  xlab = "Tenure (Months)",
+  ylab = "Probability of Remaining Active"
+)
+
+p_surv$plot <- p_surv$plot +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold"),
+    axis.title = element_text(face = "bold")
+  )
+
+p_surv
+```
+
+At 60 months, the predicted probability of remaining active is approximately **76.7%** for Individual 1 and **55.9%** for Individual 2. The lower-risk profile therefore has a substantially higher predicted probability of remaining active at this point in time.
+
+```{r survival-at-60}
+summary(fit_two, times = 60)$surv
+```
+
+# 9. Conclusion
+
+The reduced Cox proportional hazards model identifies five important predictors of patient churn: overall satisfaction, days since last visit, wait-time satisfaction, referrals made, and distance to the healthcare facility. Higher overall satisfaction, higher wait-time satisfaction, and more referrals are associated with lower churn hazard, while longer periods since the last visit and greater distance from the facility are associated with higher churn hazard.
+
+The reduced model is preferred based on AIC and satisfies the proportional hazards assumption according to the global Schoenfeld residual test. The patient-profile comparison further demonstrates how the model can translate statistical results into interpretable differences in predicted retention over time.
