@@ -18,16 +18,12 @@ The project develops a full Cox PH model, identifies important predictors, fits 
 - Demonstrate patient-level survival predictions.
 
 ## Dataset
-
-The analysis uses a patient churn dataset containing **2,000 observations**, including **1,367 churn events**.
+The dataset used in this study was obtained from Kaggle (Patient Churn Prediction Dataset for Healthcare) and consists of 2,000 patient records designed to analyze healthcare engagement and churn behavior. It provides a structured representation of patient interactions with healthcare services, capturing key aspects such as demographics, satisfaction, and access-related factors.
 
 The survival outcome is defined using:
 - **Time:** `tenure_months`
 - **Event:** `churned`
 
-The models examine demographic, healthcare utilization, satisfaction, cost, engagement, referral, and access-related variables.
-
-> **Data privacy:** The dataset should only be included publicly if it is public/synthetic, appropriately licensed, and contains no protected or personally identifiable patient information.
 
 ## Tools and Technologies
 
