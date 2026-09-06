@@ -207,15 +207,6 @@ figures/
 5. Open `Patient_Churn_Cox_Model_No_Pipes_Easy_Read.Rmd`.
 6. Knit the R Markdown document.
 
-```r
-install.packages(c(
-  "tidyverse",
-  "survival",
-  "survminer",
-  "broom",
-  "janitor"
-))
-```
 
 ## Future Improvements
 
@@ -230,3 +221,35 @@ Data Science | Machine Learning | Statistical Modeling | Data Visualization
 ## Disclaimer
 
 This project is intended for educational and portfolio purposes. The results should not be interpreted as medical advice or used for clinical decision-making without appropriate validation, governance, domain expertise, and privacy safeguards.
+
+## Skills Demonstrated
+
+This project demonstrates practical skills across the complete data science and statistical modeling workflow:
+
+- **Data Preparation & Cleaning:** Imported, cleaned, transformed, and validated structured healthcare data in R for survival analysis.
+
+- **Exploratory Data Analysis:** Examined patient characteristics, churn outcomes, and predictor distributions to understand patterns in the dataset.
+
+- **Survival Analysis:** Applied time-to-event analysis to model patient churn using patient tenure as the time variable and churn status as the event.
+
+- **Cox Proportional Hazards Modeling:** Developed full and reduced Cox PH regression models to evaluate factors associated with patient churn over time.
+
+- **Statistical Modeling & Inference:** Evaluated regression coefficients, hazard ratios, confidence intervals, p-values, and statistical significance.
+
+- **Model Selection & Comparison:** Compared full and reduced Cox models using Akaike Information Criterion (AIC), concordance, model complexity, and interpretability.
+
+- **Model Diagnostics:** Evaluated the proportional hazards assumption using Schoenfeld residual tests and global model diagnostics.
+
+- **Risk Factor Analysis:** Identified key churn-related factors, including overall satisfaction, wait-time satisfaction, days since last visit, referrals, and distance to the healthcare facility.
+
+- **Patient-Level Predictive Analysis:** Generated survival and cumulative hazard predictions for hypothetical patient profiles to demonstrate differences in churn risk over time.
+
+- **Data Visualization:** Developed clear visualizations of model predictors, survival probabilities, cumulative hazard, and patient-level risk trajectories using R.
+
+- **Reproducible Analytics:** Built the complete analysis in R Markdown, integrating data preparation, statistical modeling, visualization, interpretation, and reporting into a reproducible workflow.
+
+- **Technical Communication:** Translated statistical model results and hazard ratios into understandable healthcare and business insights for technical and non-technical audiences.
+
+### Technical Skills
+
+`R` • `R Markdown` • `Survival Analysis` • `Cox Proportional Hazards` • `Statistical Modeling` • `Hypothesis Testing` • `Model Diagnostics` • `AIC` • `Concordance` • `Schoenfeld Residuals` • `Data Cleaning` • `Data Visualization` • `tidyverse` • `survival` • `survminer` • `broom` • `janitor`
