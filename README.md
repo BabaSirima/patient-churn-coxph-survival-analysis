@@ -204,7 +204,7 @@ figures/
 2. Open the project in RStudio.
 3. Install the required R packages if necessary.
 4. Place the permitted dataset at `data/patient_churn_dataset.csv`.
-5. Open `Patient_Churn_Cox_Model_No_Pipes_Easy_Read.Rmd`.
+5. Open `Patient_Churn_Cox_Model.Rmd`.
 6. Knit the R Markdown document.
 
 
